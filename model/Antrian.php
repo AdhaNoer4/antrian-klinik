@@ -1,9 +1,11 @@
-<?php 
-class Antrian{
-    private $file = __DIR__."/../data/antrian.json"; // file json untuk menyimpan data antrian
+<?php
+class Antrian
+{
+    public $file = __DIR__ . "/../data/antrian.json"; // file json untuk menyimpan data antrian
 
     // Method untuk mendapatkan semua data antrian
-    public function getAllAntrian() {
+    public function getAllAntrian()
+    {
         if (!file_exists($this->file)) {
             file_put_contents($this->file, json_encode([])); // buat file jika belum ada    
         }
@@ -12,25 +14,49 @@ class Antrian{
     }
 
     // Method untuk menambahkan Pasien baru
-    public function addPasien($nama){
-        $data = $this->getAllAntrian();
-        $lastNumber = count($data) > 0 ? end($data)['nomor'] : 0; // ambil nomor antrian terakhir
-        $newNumber = $lastNumber + 1; // nomor antrian baru
-        $data[] = [
-            'nomor' => $newNumber,
-            'nama' => $nama    
-        ];
-        file_put_contents($this->file, json_encode($data, JSON_PRETTY_PRINT)); // simpan data antrian
+    public function addPasien($nama)
+    {
+        $antrian = $this->getAllAntrian();
+        $nomor = count($antrian) + 1;
+        $antrian[] = ["nomor" => $nomor, "nama" => $nama, "status" => "belum"];
+        $this->saveAll($antrian);
     }
 
     // Method memanggil dan menghapus pasien dari antrian
-    public function panggilPasien(){
-        $data = $this->getAllAntrian();
-        if (count($data) > 0) {
-           array_shift($data); // hapus pasien pertama dari antrian
+    public function panggilPasien()
+    {
+        $antrian = $this->getAllAntrian();
+        foreach ($antrian as &$pasien) {
+            if ($pasien['status'] === 'belum') {
+                $pasien['status'] = 'selesai';
+                $this->simpanDipanggil($pasien);
+                break;
+            }
         }
-        file_put_contents($this->file, json_encode($data, JSON_PRETTY_PRINT)); // simpan data antrian
+        $this->saveAll($antrian);
+    }
+
+    public function saveAll($data)
+    {
+        file_put_contents($this->file, json_encode($data, JSON_PRETTY_PRINT));
+    }
+
+    // Method untuk menyimpan data pasien yang dipanggil
+    // Simpan data pasien yang dipanggil ke file dipanggil.json
+    public function simpanDipanggil($pasien)
+    {
+        $fileDipanggil = __DIR__ . '/../data/dipanggil.json';
+        file_put_contents($fileDipanggil, json_encode($pasien, JSON_PRETTY_PRINT)); // simpan data pasien yang dipanggil
+    }
+
+    // Method untuk mendapatkan data pasien yang dipanggil
+    public function getDipanggil()
+    {
+        $fileDipanggil = __DIR__ . '/../data/dipanggil.json';
+        if (!file_exists($fileDipanggil)) {
+            return null; // jika file belum ada, kembalikan array kosong
+        }
+        $data = json_decode(file_get_contents($fileDipanggil), true);
+        return $data; // kembalikan data pasien yang dipanggil
     }
 }
-
-?>
